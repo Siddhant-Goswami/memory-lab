@@ -13,11 +13,11 @@
 <body>
 
 <!-- ============ SIDEBAR ============ -->
-<aside id="sidebar">
+<aside id="sidebar" aria-label="Course navigation">
   <div class="brand">
-    <a class="brand-logo" id="homeLink">
+    <button class="brand-logo" id="homeLink" type="button" aria-label="Go to the first lesson">
       <span class="brand-100">100</span><span class="brand-x">x</span>
-    </a>
+    </button>
     <span class="brand-lab">The Modeling Lab</span>
   </div>
 
@@ -31,12 +31,12 @@
 <!-- ============ MAIN ============ -->
 <main id="main">
   <div class="topbar">
-    <button id="menuBtn" class="btn btn--ghost btn--sm only-mobile"><i data-lucide="panel-left"></i></button>
-    <div class="topbar-progress"><div id="progressFill"></div></div>
+    <button id="menuBtn" class="btn btn--ghost btn--sm only-mobile" type="button" aria-label="Open course navigation" aria-controls="sidebar" aria-expanded="false"><i data-lucide="panel-left"></i></button>
+    <div class="topbar-progress" id="progressBar" role="progressbar" aria-label="Course progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progressFill"></div></div>
     <div id="progressLabel" class="caption mono"></div>
   </div>
 
-  <div id="stage"></div>
+  <div id="stage" tabindex="-1"></div>
 
   <footer id="stepFooter" class="step-footer">
     <button id="backBtn" class="btn btn--secondary btn--sm"><i data-lucide="arrow-left"></i> Back</button>
@@ -45,7 +45,8 @@
   </footer>
 </main>
 
-<div id="toast" class="toast"></div>
+<button id="scrim" class="scrim" type="button" aria-label="Close course navigation"></button>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="js/data.js"></script>

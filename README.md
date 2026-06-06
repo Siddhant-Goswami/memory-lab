@@ -1,6 +1,6 @@
 # The Modeling Lab
 
-An interactive, browser-based course that teaches **domain modeling** by doing — the skill of mapping any product into **entities, attributes, and relationships**, then turning that into an ER diagram and a database schema (CSV-ready).
+An interactive, browser-based course that teaches **domain modeling** by doing: map a product into entities, attributes, relationships, and basic constraints, then express the result as an ER diagram and SQL schema.
 
 Built for 100xEngineers Cohort 7, in the 100x design language (white canvas, coral accent, Space Grotesk / DM Sans). No install, no server, no account — **just double-click `index.html`.** Works for the code track and the no-code track alike.
 
@@ -10,6 +10,8 @@ Built for 100xEngineers Cohort 7, in the 100x design language (white canvas, cor
 - Or: `open index.html` (macOS) / `xdg-open index.html` (Linux).
 
 Progress and your schemas are saved automatically in the browser. Use **Reset progress** in the sidebar to start over.
+
+Run `npm test` for the grader, migration, CSV, and SQL regression suite.
 
 ## How it's built pedagogically
 
@@ -34,7 +36,7 @@ A single example is **woven through the whole flow**: Aarav, an early-career bui
 | Intermediate | Online Learning (M:N) · University Grades (attribute on junction) · Car Rental (contract entity) · Hospital Assignments (historical records) |
 | Advanced | LinkedIn Automation (lifecycle + analytics) · Food Delivery (marketplace + assignment) |
 
-For each: read the brief → build tables (columns, PK/FK, references) → **Submit**. A forgiving-but-strict grader checks your entities, attributes, keys and relationships and gives specific feedback. It's lenient on naming (plurals + synonyms) but **won't pass** a model that misses the exercise's core lesson (e.g. no join table, or the grade on the wrong table). View it as an **ER diagram**, preview the **CSV sheets**, or **download the CSVs**.
+For each: read the brief → build tables (columns, PK/FK, required/unique constraints, references) → **Submit**. The grader checks entities, attributes, keys, broken references, contradictory relationships, and one-to-one uniqueness. View the ER diagram, download valid sample CSV files, or export a SQL schema.
 
 ## Files
 
@@ -44,7 +46,7 @@ css/tokens.css   → 100xEngineers design tokens (colors, type, spacing) — dro
 css/app.css      → app-specific components, built on the tokens
 js/data.js       → lesson content + the 10 exercise rubrics
 js/grader.js     → the schema-grading engine
-js/app.js        → linear player, schema builder, Arena, ER/CSV export
+js/app.js        → linear player, schema builder, Arena, ER/CSV/SQL export
 ```
 
 To add an exercise, copy an object in `CHALLENGES` (in `js/data.js`) and describe its `rubric`. Mark an attribute `critical: true` to make missing it block a pass (use it for the exercise's teaching point). No other changes needed.

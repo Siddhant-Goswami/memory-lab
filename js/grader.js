@@ -18,6 +18,9 @@ function matchesAny(input, names){ return (names||[]).some(n=>nameEq(input,n)); 
 
 function entityTargets(e){ return [e.name, ...(e.aliases||[])]; }
 function attrTargets(a){ return [a.name, ...(a.aliases||[])]; }
+function safe(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function isPrimary(col){ return col && (col.primary===true || col.key==='pk'); }
+function isForeign(col){ return col && (col.foreign===true || col.key==='fk'); }
 
 /* find the student's table that stands in for a rubric entity */
 function findTable(schema, entity){
@@ -28,20 +31,44 @@ function findCol(table, attr){
   return table.columns.find(c => matchesAny(c.name, attrTargets(attr)));
 }
 /* does a student fk column point at the rubric's referenced entity? */
-function fkPointsAt(col, refEntity){
-  if(!col || col.key!=='fk') return false;
-  return matchesAny(col.fkRef, entityTargets(refEntity));
+function fkPointsAt(col, refEntity, schema){
+  if(!isForeign(col)) return false;
+  const target=(schema||[]).find(t=>t.id===col.fkRef || nameEq(t.name,col.fkRef));
+  return !!target && matchesAny(target.name, entityTargets(refEntity));
 }
 
 function gradeSchema(schema, challenge){
   const rubric = challenge.rubric;
   const fb = [];            // feedback items
   let score = 0, max = 0;
+  let penalty = 0;
   let criticalFail = false; // a structural mistake that should block a "pass"
 
   // resolve a rubric entity object by its canonical name (for ref lookups)
   const entityByName = {};
   rubric.entities.forEach(e => entityByName[e.name] = e);
+
+  // Reject ambiguous or broken structures before comparing with the answer rubric.
+  const namedTables=schema.filter(t=>t.name);
+  const duplicateTables=namedTables.filter((t,i)=>namedTables.findIndex(x=>nameEq(x.name,t.name))!==i);
+  if(duplicateTables.length){
+    criticalFail=true; penalty+=8;
+    fb.push({type:'miss',icon:'✕',html:`Duplicate table names make references ambiguous: <code>${safe(duplicateTables[0].name)}</code>. Rename or remove the duplicate.`});
+  }
+  namedTables.forEach(table=>{
+    const namedCols=table.columns.filter(c=>c.name);
+    const dup=namedCols.find((c,i)=>namedCols.findIndex(x=>nameEq(x.name,c.name))!==i);
+    if(dup){
+      criticalFail=true; penalty+=5;
+      fb.push({type:'miss',icon:'✕',html:`<code>${safe(table.name)}</code> contains duplicate column <code>${safe(dup.name)}</code>.`});
+    }
+    table.columns.filter(isForeign).forEach(col=>{
+      if(!schema.some(t=>t.id===col.fkRef || nameEq(t.name,col.fkRef))){
+        criticalFail=true; penalty+=5;
+        fb.push({type:'miss',icon:'✕',html:`<code>${safe(table.name)}.${safe(col.name)}</code> points to a table that does not exist.`});
+      }
+    });
+  });
 
   // ---------- ENTITIES + ATTRIBUTES ----------
   rubric.entities.forEach(entity => {
@@ -55,13 +82,13 @@ function gradeSchema(schema, challenge){
       return;
     }
     score += W_ENTITY;
-    fb.push({type:'good', icon:'✓', html:`Table <code>${table.name}</code> — entity found.`});
+    fb.push({type:'good', icon:'✓', html:`Table <code>${safe(table.name)}</code> — entity found.`});
 
     // primary key
-    const hasPk = table.columns.some(c => c.key==='pk');
+    const hasPk = table.columns.some(isPrimary);
     max += 2;
     if(hasPk){ score += 2; }
-    else fb.push({type:'warn', icon:'!', html:`<code>${table.name}</code> has no primary key. Every table needs a unique address — usually <code>id</code>.`});
+    else fb.push({type:'warn', icon:'!', html:`<code>${safe(table.name)}</code> has no primary key. Every table needs a unique address, often <code>id</code> or a composite key.`});
 
     // attributes
     entity.attrs.forEach(attr => {
@@ -77,25 +104,25 @@ function gradeSchema(schema, challenge){
 
       if(isFk){
         const refEntity = entityByName[attr.ref];
-        if(col && fkPointsAt(col, refEntity)){
+        if(col && fkPointsAt(col, refEntity, schema)){
           score += W;
-        } else if(col && col.key==='fk'){
+        } else if(col && isForeign(col)){
           score += W*0.5;
-          fb.push({type:'warn', icon:'!', html:`<code>${table.name}.${col.name}</code> is marked as a foreign key but doesn't point at <code>${attr.ref}</code>. Set its reference.`});
+          fb.push({type:'warn', icon:'!', html:`<code>${safe(table.name)}.${safe(col.name)}</code> is marked as a foreign key but doesn't point at <code>${attr.ref}</code>. Set its reference.`});
         } else if(col){
           score += W*0.35;
-          fb.push({type:'warn', icon:'!', html:`<code>${table.name}.${col.name}</code> looks like it should be a <b>foreign key</b> → <code>${attr.ref}</code>, but it isn't marked as one. Mark the key as FK and pick the table it references.`});
+          fb.push({type:'warn', icon:'!', html:`<code>${safe(table.name)}.${safe(col.name)}</code> looks like it should be a <b>foreign key</b> → <code>${attr.ref}</code>, but it isn't marked as one. Mark the key as FK and pick the table it references.`});
         } else {
-          fb.push({type:'miss', icon:'✕', html:`<code>${table.name}</code> is missing the foreign key to <code>${attr.ref}</code> (e.g. <code>${attr.name}</code>). Without it, the “${entity.name} → ${attr.ref}” link doesn't exist.`});
+          fb.push({type:'miss', icon:'✕', html:`<code>${safe(table.name)}</code> is missing the foreign key to <code>${attr.ref}</code> (e.g. <code>${attr.name}</code>). Without it, the “${entity.name} → ${attr.ref}” link doesn't exist.`});
         }
       } else {
         if(col){ score += W; }
         else if(required){
           if(attr.critical){
             criticalFail = true;
-            fb.push({type:'miss', icon:'✕', html:`<code>${table.name}</code> is missing <b>${attr.name}</b> — and that's the crux of this exercise. ${attr.role!=='fk'?'It describes a connection, so it must live exactly here.':''} Add it to pass.`});
+            fb.push({type:'miss', icon:'✕', html:`<code>${safe(table.name)}</code> is missing <b>${attr.name}</b> — and that's the crux of this exercise. ${attr.role!=='fk'?'It describes a connection, so it must live exactly here.':''} Add it to pass.`});
           } else {
-            fb.push({type:'miss', icon:'✕', html:`<code>${table.name}</code> is missing the <b>${attr.name}</b> attribute.`});
+            fb.push({type:'miss', icon:'✕', html:`<code>${safe(table.name)}</code> is missing the <b>${attr.name}</b> attribute.`});
           }
         }
       }
@@ -110,23 +137,29 @@ function gradeSchema(schema, challenge){
 
     if(!tbl){ return; } // already reported as missing entity
 
-    const fkCols = tbl.columns.filter(c => fkPointsAt(c, refEntity));
+    const fkCols = tbl.columns.filter(c => fkPointsAt(c, refEntity, schema));
 
     if(rel.fk.selfJoin){
       // needs TWO distinct fks to the same table
       if(fkCols.length >= 2){
         score += W;
-        fb.push({type:'good', icon:'★', html:`Self-join nailed: <code>${tbl.name}</code> has two foreign keys into <code>${refEntity.name}</code> — that's how a directional follow works.`});
+        fb.push({type:'good', icon:'★', html:`Self-join nailed: <code>${safe(tbl.name)}</code> has two foreign keys into <code>${refEntity.name}</code> — that's how a directional follow works.`});
       } else if(fkCols.length === 1){
         score += W*0.25; criticalFail = true;
-        fb.push({type:'miss', icon:'✕', html:`<code>${tbl.name}</code> only has one FK to <code>${refEntity.name}</code>. A directional follow needs TWO (follower + followed), both pointing at users — otherwise you can't tell who follows whom. Fix this to pass.`});
+        fb.push({type:'miss', icon:'✕', html:`<code>${safe(tbl.name)}</code> only has one FK to <code>${refEntity.name}</code>. A directional follow needs TWO (follower + followed), both pointing at users — otherwise you can't tell who follows whom. Fix this to pass.`});
       } else {
         criticalFail = true;
         fb.push({type:'miss', icon:'✕', html:`Relationship missing: <b>${rel.label}</b>.`});
       }
     } else {
-      if(fkCols.length >= 1){ score += W; }
-      else { criticalFail = true; fb.push({type:'miss', icon:'✕', html:`Relationship missing: <b>${rel.label}</b>. The FK belongs on <code>${rel.fk.table}</code> (the “many” side).`}); }
+      if(fkCols.length >= 1){
+        const uniqueFk=fkCols.some(c=>c.unique || (isPrimary(c)&&tbl.columns.filter(isPrimary).length===1));
+        if(rel.fk.unique && !uniqueFk){
+          criticalFail=true;
+          fb.push({type:'miss',icon:'✕',html:`<b>${rel.label}</b> is one-to-one, so its foreign key must also be <b>unique</b>. Mark UQ on <code>${safe(tbl.name)}.${safe(fkCols[0].name)}</code>.`});
+        } else score += W;
+      }
+      else { criticalFail = true; fb.push({type:'miss', icon:'✕', html:`Relationship missing: <b>${rel.label}</b>. Add the FK on <code>${rel.fk.table}</code>${rel.fk.unique?' and mark it unique':''}.`}); }
     }
   });
 
@@ -136,13 +169,15 @@ function gradeSchema(schema, challenge){
     const oneSide = schema.find(t => matchesAny(t.name, entityTargets(entityByName[rel.fk.ref]||{name:rel.fk.ref})));
     const manyEntity = entityByName[rel.fk.table];
     if(oneSide && manyEntity){
-      const wrong = oneSide.columns.find(c => fkPointsAt(c, manyEntity));
+      const wrong = oneSide.columns.find(c => fkPointsAt(c, manyEntity, schema));
       if(wrong){
-        fb.push({type:'warn', icon:'⤺', html:`Heads up: <code>${oneSide.name}.${wrong.name}</code> points DOWN at <code>${manyEntity.name}</code>. The “one” side can't hold the “many” side's id — flip it so <code>${rel.fk.table}</code> points up instead.`});
+        criticalFail=true; penalty+=6;
+        fb.push({type:'miss', icon:'⤺', html:`Contradictory relationship: <code>${safe(oneSide.name)}.${safe(wrong.name)}</code> points at <code>${manyEntity.name}</code>. Remove it; <code>${rel.fk.table}</code> already carries the relationship.`});
       }
     }
   });
 
+  score=Math.max(0,score-penalty);
   const pct = max>0 ? Math.round((score/max)*100) : 0;
   let status = 'fail';
   if(pct >= 85) status = 'pass';
@@ -153,7 +188,7 @@ function gradeSchema(schema, challenge){
 
   // closing tip
   if(status==='pass'){
-    fb.unshift({type:'tip', icon:'🎉', html:`<b>Schema accepted.</b> Your entities, attributes and keys map cleanly to real tables. Export the CSVs and you've got a database.`});
+    fb.unshift({type:'tip', icon:'🎉', html:`<b>Schema accepted.</b> The core entities, attributes, keys, and relationships satisfy this exercise. Export SQL, then review product-specific constraints and indexes.`});
   } else if(status==='partial'){
     fb.unshift({type:'tip', icon:'🔧', html:`<b>Close.</b> The skeleton is right but some links or fields are off. Read the ✕ and ! items below and adjust.`});
   } else {

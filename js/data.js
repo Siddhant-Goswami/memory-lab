@@ -37,7 +37,10 @@ function fanDiagram(one, many){
 /* build a schema object (in the builder's shape) for static ER steps.
    cols: array of [name, key?, fkRef?]  where key is 'pk' | 'fk' | undefined */
 function erTable(name, cols){
-  return { name, columns: cols.map(([n,k,ref])=>({name:n, type:(k==='pk'||k==='fk')?'id':'text', key:k||'none', fkRef:ref||''})) };
+  return { id:name, name, columns: cols.map(([n,k,ref,opts={}])=>({
+    id:`${name}.${n}`, name:n, type:(k==='pk'||k==='fk')?'id':'text', key:k||'none',
+    primary:k==='pk', foreign:k==='fk', fkRef:ref||'', required:opts.required!==false, unique:!!opts.unique,
+  })) };
 }
 
 /* the running example, fully assembled: Aarav's simple chat-to-plan app. */
@@ -54,8 +57,8 @@ const AARAV_FULL = [
   erTable('workflows',     [['id','pk'],['user_id','fk','users'],['title'],['pain_score']]),
   erTable('conversations', [['id','pk'],['workflow_id','fk','workflows'],['started_at']]),
   erTable('messages',      [['id','pk'],['conversation_id','fk','conversations'],['role'],['content']]),
-  erTable('workflow_maps', [['id','pk'],['workflow_id','fk','workflows'],['bottleneck'],['success_metric']]),
-  erTable('prototypes',    [['id','pk'],['workflow_id','fk','workflows'],['tool_stack'],['status']]),
+  erTable('workflow_maps', [['id','pk'],['workflow_id','fk','workflows',{unique:true}],['bottleneck'],['success_metric']]),
+  erTable('prototypes',    [['id','pk'],['workflow_id','fk','workflows',{unique:true}],['tool_stack'],['status']]),
   erTable('interviews',    [['id','pk'],['workflow_id','fk','workflows'],['notes']]),
 ];
 
@@ -82,23 +85,23 @@ const MODULES = [
       title:'You cannot store what you cannot describe.',
       subtitle:'So before any tool, you answer three plain questions about Aarav\'s world.',
       ask:`Look at Aarav's chat again. What are the "things" in it? What does each thing have? How do they connect?`,
-      body:`Those three questions <i>are</i> the whole job:<br><br><b>1. What are the things?</b> These become <b>entities</b>.<br><b>2. What does each thing have?</b> These become <b>attributes</b>.<br><b>3. How do the things connect?</b> These become <b>relationships</b>.<br><br>Answer them well and the database almost writes itself. We will build each answer for Aarav, one idea at a time, and by the end you will have his full schema on screen.`,
+      body:`Those three questions are the starting point:<br><br><b>1. What are the things?</b> Candidates may become <b>entities</b>.<br><b>2. What does each thing have?</b> These facts may become <b>attributes</b>.<br><b>3. How do the things connect?</b> These become <b>relationships</b>.<br><br>Then you test the model against identity, lifecycle, business rules, and the questions the product must answer. We will build each answer for Aarav one idea at a time.`,
       art:aaravChat() },
   ]},
 
   /* ---------------- 1. ENTITIES ---------------- */
   { id:'entities', title:'Entities', icon:'box', steps:[
     { t:'concept', eyebrow:'Question 1 of 3 · the things',
-      title:'Start by pointing at the nouns.',
-      subtitle:'An entity is a thing you can point at and say "there is one, and there is another."',
+      title:'Start by finding candidate nouns.',
+      subtitle:'A noun is a clue. Identity and lifecycle decide whether it deserves a table.',
       ask:`In Aarav's app, who or what can you count more than one of? Try to name three before you read on.`,
-      body:`Aarav is a <b>user</b>. Each time he opens the app and chats, that session is a <b>conversation</b>. Inside it, each line he or the AI writes is a <b>message</b>. The clean plan that comes back is a <b>plan</b>. Four nouns, four entities, four future <b>tables</b>. Notice we found them just by reading his story out loud.`,
+      body:`Aarav is a <b>user</b>. Each chat session is a <b>conversation</b>. Each line is a <b>message</b>. A generated <b>plan</b> has its own identity and history. These nouns are candidates; they become entities because the product must create, find, change, and retain individual instances of them.`,
       art:badgeRow([{t:'e',k:'User',v:'Aarav himself'},{t:'e',k:'Conversation',v:'one chat session'},{t:'e',k:'Message',v:'one line in the chat'},{t:'e',k:'Plan',v:'the AI\'s answer'}]) },
     { t:'concept', eyebrow:'Question 1 of 3 · the test',
       title:'How do you know it is really an entity?',
-      subtitle:'Run the CRUD test: can you Create, Read, Update, and Delete it on its own?',
+      subtitle:'Use CRUD as a prompt, then check identity, lifecycle, and business rules.',
       ask:`Can Aarav create a single message, read it, edit it, delete it, without touching anything else? What about the word "casual" describing the plan's tone?`,
-      body:`A <b>message</b> passes: you can create one, show it, edit it, delete it, all by itself. So it earns its own table. The word "casual" fails: you would never create or delete a "casual" on its own, it only <i>describes</i> a plan. Things that pass the test are entities. Things that only describe something else are <b>attributes</b>, which is exactly the next question.`,
+      body:`A <b>message</b> has identity, timestamps, ownership, and a lifecycle, so it earns a table. "Casual" has no identity here; it describes a plan, so it is an attribute. CRUD is useful, but the stronger question is: does the product need to refer to this thing independently and enforce rules about it?`,
     },
     { t:'quiz', eyebrow:'Quick check', prompt:'Is "Conversation" an entity in Aarav\'s app?',
       scn:`Aarav opens the app on Monday and chats. On Tuesday he opens it again, a fresh <b>conversation</b>. Each one can be started, reopened, and deleted.`,
@@ -132,7 +135,7 @@ const MODULES = [
       title:'The whole skill is drawing one boundary.',
       subtitle:'Same word can be an attribute in one app and an entity in another.',
       ask:`Aarav lets the user pick a "tone" for the plan. Is tone an entity or an attribute? Does your answer change if users could save and reuse named tones?`,
-      body:`As written, <code>tone</code> only describes one plan, you never create or delete a "tone" by itself, so it is an <b>attribute of Plan</b>. But the moment Aarav lets users build a library of reusable tones to pick from, a tone can now be created and deleted on its own, so it becomes its own <b>entity</b>. Same word, different answer, decided entirely by the CRUD test. Arguing this line is the muscle you are building.`,
+      body:`As written, <code>tone</code> describes one plan, so it is an <b>attribute of Plan</b>. If users build a reusable tone library, each tone gains identity, ownership, and a lifecycle, so it becomes an <b>entity</b>. The boundary is decided by product requirements, not by the word itself.`,
     },
     { t:'quiz', eyebrow:'Quick check', prompt:'Entity or attribute: "tone"?',
       scn:`Aarav's plan is written in a chosen <b>tone</b>, formal or casual, and tones are not saved or reused anywhere.`,
@@ -160,7 +163,7 @@ const MODULES = [
       title:'One-to-one: each side has exactly one.',
       subtitle:'Rare, and worth a second look when you find it.',
       ask:`Suppose every Aarav account has exactly one billing profile, and each billing profile belongs to exactly one account. How many tables does that really need?`,
-      body:`That is one-to-one. It is rare, and when you find one it is worth asking whether the two things should simply be one table. A user and a country's capital city are the textbook cases. Keep it in your pocket, you will reach for the next shape far more often.`,
+      body:`That is one-to-one. It is rare, and it may mean the two concepts belong in one table. If they need separate security, lifecycle, or optional data, keep two tables and enforce the relationship with a <b>unique foreign key</b>. A foreign key alone only creates many-to-one.`,
       art:`<div class="art"><div class="reldiag"><span class="rel-box">User</span><span class="rel-line"><span class="ln"></span>has one<span class="ln"></span></span><span class="rel-box">Billing profile</span></div></div>` },
     { t:'concept', eyebrow:'Shape 2 of 3 · the workhorse',
       title:'One-to-many: one parent, many children.',
@@ -172,13 +175,13 @@ const MODULES = [
       title:'Many-to-many: both sides have many.',
       subtitle:'It cannot be done with one pointer. It needs a third table.',
       ask:`Aarav's simple app does not have this shape yet. But picture the full program: a student takes many courses, and a course has many students. Where would you put the link?`,
-      body:`You cannot put it on either side: a single column cannot hold "many". So you add a <b>third table</b>, one row per pairing: <code>enrollments(student_id, course_id)</code>. It is called a join table, junction, or associative entity. The instant both sides say "many", reach for this. We will see it appear naturally when Aarav's app grows.`,
+      body:`You cannot put it on either side: a single column cannot hold "many". So you add a <b>third table</b>, one row per pairing: <code>enrollments(student_id, course_id)</code>. Both columns are foreign keys, and together they can form a composite primary key so the same pairing cannot be inserted twice. A surrogate <code>id</code> is also valid when paired with a unique constraint across both foreign keys.`,
       art:`<div class="art"><div class="reldiag"><span class="rel-box">Student</span><span class="rel-line"><span class="ln"></span>&infin;<span class="ln"></span></span><span class="rel-box" style="border-color:var(--accent);color:var(--accent-press)">Enrollment</span><span class="rel-line"><span class="ln"></span>&infin;<span class="ln"></span></span><span class="rel-box">Course</span></div></div>` },
     { t:'concept', eyebrow:'The move that separates beginners',
       title:'So where does in-between data live?',
       subtitle:'On the join table. Never on either side.',
       ask:`A student earns a grade in a course. Could that grade sit on the student? On the course? Why does neither work?`,
-      body:`A student has many grades, one per course, so grade cannot be a single column on the student. A course has many grades, one per student, so it cannot sit there either. The grade belongs to the <i>pairing</i>, so it lives on the <code>enrollments</code> join row. Same logic puts <code>quantity</code> on an order line, and the <code>status</code> of a workflow on the link between a user and that workflow. Master this and you model like a senior engineer.`,
+      body:`A student has many grades, one per course, so grade cannot be one column on the student. A course has many grades, one per student, so it cannot sit there either. The grade belongs to the <i>pairing</i>, so it lives on the <code>enrollments</code> row. The same logic puts <code>quantity</code> on an order line. A good model asks what fact each value describes.`,
     },
     { t:'quiz', eyebrow:'Name the shape', prompt:'What relationship is this?',
       scn:`Each Aarav account has exactly one <b>billing profile</b>, and that profile belongs to exactly one account.`,
@@ -214,9 +217,9 @@ const MODULES = [
   { id:'keys', title:'Keys & ER', icon:'key-round', steps:[
     { t:'concept', eyebrow:'The grammar',
       title:'It all comes down to tables, rows, columns.',
-      subtitle:'The same grammar in Supabase, Airtable, Google Sheets, SQLite.',
+      subtitle:'Tables look familiar across tools, but databases also enforce rules.',
       ask:`You already know spreadsheets. What in a spreadsheet matches an entity? An instance of it? An attribute?`,
-      body:`A <b>table</b> holds one entity type (Aarav's messages). A <b>row</b> is one instance (message #31). A <b>column</b> is one attribute (its content). That is the entire grammar. The spreadsheet you already understand <i>is</i> a table, you have been modeling without the words.`,
+      body:`A <b>table</b> usually holds one entity type. A <b>row</b> is one instance. A <b>column</b> is one attribute. A relational database goes beyond a spreadsheet by enforcing types, required values, uniqueness, references, and other business rules.`,
     },
     { t:'concept', eyebrow:'Identity',
       title:'Every row needs an address.',
@@ -233,7 +236,7 @@ const MODULES = [
     { t:'quiz', eyebrow:'Place the key', prompt:'Which table gets the foreign key?',
       scn:`One <b>conversation</b> has many <b>messages</b>.`,
       options:[
-        {label:'messages gets a conversation_id', correct:true, fb:'Right. The foreign key always lives on the "many" side. Each message points up to its one conversation.'},
+        {label:'messages gets a conversation_id', correct:true, fb:'Right for this one-to-many relationship. Each message points to its conversation. Other cardinalities may also require uniqueness or a join table.'},
         {label:'conversations gets a message_id', correct:false, fb:'A conversation has many messages, it cannot hold a single message_id. The FK goes on messages, the many side.'},
         {label:'both tables point at each other', correct:false, fb:'You only need the pointer on the many side. One conversation_id per message captures the whole relationship.'},
       ] },
@@ -241,7 +244,7 @@ const MODULES = [
       title:'A model is just boxes and lines.',
       subtitle:'Boxes for entities, lines for relationships. That picture is an ER diagram.',
       ask:`If every entity is a sheet and every foreign key is a link between sheets, what does Aarav's whole app look like drawn out?`,
-      body:`Exactly that: a set of sheets with arrows between them. Entities become boxes, columns become rows inside the box, foreign keys become the lines. That picture is an <b>ER diagram</b> (entity-relationship), and it maps one-to-one to CSV files. In the next module we assemble Aarav's four entities into the finished picture.`,
+      body:`Entities become boxes, columns become fields, and foreign keys become lines. That picture is an <b>ER diagram</b>. CSV files can hold sample rows, but they do not preserve types, keys, or constraints. A SQL schema does, so the builder exports both sample CSVs and SQL.`,
     },
   ]},
 
@@ -262,7 +265,7 @@ const MODULES = [
       title:'The full program reuses the exact same moves.',
       subtitle:'No new theory. Just more nouns, and the three shapes again.',
       ask:`The 21-day program adds workflows, diagnosis maps, prototypes, and user interviews. Which of the three relationship shapes do you expect to dominate?`,
-      body:`One-to-many, again and again. A user has many <b>workflows</b>. A workflow has one diagnosis <b>map</b>, many <b>conversations</b>, a <b>prototype</b>, and many <b>interviews</b>. Each foreign key still lands on the many side. The chat we built becomes one branch hanging off a workflow. Same primitives, bigger world.`,
+      body:`One-to-many appears repeatedly. A user has many <b>workflows</b>. A workflow has many <b>conversations</b> and <b>interviews</b>. It has one diagnosis <b>map</b> and one <b>prototype</b>, enforced with unique foreign keys. The same primitives scale when their constraints are explicit.`,
     },
     { t:'er', eyebrow:'The extended model',
       title:'The same skill, scaled to the whole 21 days.',
@@ -272,7 +275,7 @@ const MODULES = [
     { t:'concept', eyebrow:'Your move',
       title:'Aarav’s done. Your turn is coming.',
       subtitle:'First sharpen the skill on real briefs, then point it at your own app.',
-      body:`Next is <b>the Arena</b>: ten product briefs, graded live the way a senior engineer reviews a schema. After that, the final module hands you a blank canvas to model <i>your own</i> idea, the one you actually want to build. Warm up first.`,
+      body:`Next is <b>the Arena</b>: ten product briefs with automated feedback on the lesson's core structure. After that, the final module hands you a blank canvas to model <i>your own</i> idea. The grader is a practice aid, not a substitute for reviewing real product rules and queries.`,
     },
   ]},
 
@@ -284,7 +287,7 @@ const MODULES = [
 ];
 
 /* column types offered in the builder */
-const COL_TYPES = ['text','number','date','boolean','id'];
+const COL_TYPES = ['text','integer','decimal','boolean','date','timestamp','uuid','id'];
 
 /* ============================================================
    THE ARENA — 10 graded modeling exercises, 3 tiers.
@@ -441,7 +444,7 @@ const CHALLENGES = [
     title:'LinkedIn Post Automation (SaaS)',
     blurb:'Users, accounts, templates, posts, analytics.',
     story:`A SaaS tool automates LinkedIn content. Users connect multiple LinkedIn accounts. Users create AI posts from reusable templates. Each post moves through a lifecycle: draft → scheduled → published. Published posts collect analytics (impressions, likes, comments).`,
-    reqs:['A user has many LinkedIn accounts and many templates.','A template can generate many posts; a post is created from one template.','A post carries its lifecycle status; analytics attach to a post.'],
+    reqs:['A user has many LinkedIn accounts and many templates.','A template can generate many posts; a post is created from one template.','A post carries its lifecycle status; enforce one analytics summary per post.'],
     starter:['users','linkedin_accounts','templates','posts','post_analytics'],
     rubric:{ entities:[
       { name:'users', aliases:['user','accounts'], attrs:[{name:'id',role:'pk'},{name:'name',required:false,aliases:['email','username']}]},
@@ -453,16 +456,16 @@ const CHALLENGES = [
       {label:'one user → many linkedin_accounts', fk:{table:'linkedin_accounts',ref:'users'}},
       {label:'one user → many templates', fk:{table:'templates',ref:'users'}},
       {label:'one template → many posts', fk:{table:'posts',ref:'templates'}},
-      {label:'analytics attach to a post', fk:{table:'post_analytics',ref:'posts'}},
+      {label:'one analytics summary per post', fk:{table:'post_analytics',ref:'posts',unique:true}},
     ]},
-    hints:['The post\'s lifecycle (draft/scheduled/published) is a status column ON posts — not five separate tables.','A template is reused to produce many posts → template_id is a FK on posts (one-to-many).','Analytics belong to a post → put post_id on the analytics table, not analytics columns on posts.'],
+    hints:['The post\'s lifecycle (draft/scheduled/published) is a status column ON posts — not five separate tables.','A template is reused to produce many posts → template_id is a FK on posts (one-to-many).','Analytics belong to a post. Put post_id on analytics and mark it UQ to enforce one summary row per post.'],
   },
   {
     id:'fooddelivery', difficulty:'advanced', skill:'marketplace + assignment',
     title:'Food Delivery Marketplace',
     blurb:'Restaurants, menus, orders, items, drivers, ratings.',
     story:`A delivery platform connects restaurants, customers, and drivers. Restaurants have menu items. Customers place orders containing several items. Each order is assigned to one driver. Customers rate restaurants and drivers.`,
-    reqs:['Restaurants own menu items (one-to-many).','An order has many items (join with quantity); each order is assigned a driver.','Capture ratings for a restaurant/driver.'],
+    reqs:['Restaurants own menu items (one-to-many).','An order has many items (join with quantity); an order may later be assigned a driver.','Capture one restaurant score and one driver score per completed order.'],
     starter:['restaurants','menu_items','customers','orders','order_items','drivers','ratings'],
     rubric:{ entities:[
       { name:'restaurants', aliases:['restaurant','vendors','stores'], attrs:[{name:'id',role:'pk'},{name:'name'}]},
@@ -471,14 +474,15 @@ const CHALLENGES = [
       { name:'drivers', aliases:['driver','riders','rider','delivery_partners'], attrs:[{name:'id',role:'pk'},{name:'name'},{name:'vehicle',required:false}]},
       { name:'orders', aliases:['order'], attrs:[{name:'id',role:'pk'},{name:'customer_id',role:'fk',ref:'customers'},{name:'driver_id',role:'fk',ref:'drivers'},{name:'restaurant_id',role:'fk',ref:'restaurants',required:false},{name:'status',required:false}]},
       { name:'order_items', aliases:['order_item','order_lines','line_items','cart_items'], attrs:[{name:'id',role:'pk',required:false},{name:'order_id',role:'fk',ref:'orders'},{name:'menu_item_id',role:'fk',ref:'menu_items',aliases:['item_id','dish_id']},{name:'quantity',critical:true,aliases:['qty']}]},
-      { name:'ratings', aliases:['rating','reviews','review','feedback'], attrs:[{name:'id',role:'pk',required:false},{name:'customer_id',role:'fk',ref:'customers'},{name:'rating',aliases:['stars','score']},{name:'restaurant_id',role:'fk',ref:'restaurants',required:false},{name:'driver_id',role:'fk',ref:'drivers',required:false}]},
+      { name:'ratings', aliases:['rating','reviews','review','feedback'], attrs:[{name:'id',role:'pk',required:false},{name:'order_id',role:'fk',ref:'orders'},{name:'restaurant_rating',aliases:['restaurant_score']},{name:'driver_rating',aliases:['driver_score']}]},
     ], relationships:[
       {label:'one restaurant → many menu_items', fk:{table:'menu_items',ref:'restaurants'}},
       {label:'one customer → many orders', fk:{table:'orders',ref:'customers'}},
       {label:'one driver → many orders (assignment)', fk:{table:'orders',ref:'drivers'}},
       {label:'one order → many order_items', fk:{table:'order_items',ref:'orders'}},
       {label:'one menu_item → many order_items', fk:{table:'order_items',ref:'menu_items'}},
+      {label:'one rating record per order', fk:{table:'ratings',ref:'orders',unique:true}},
     ]},
-    hints:['Menu items belong to one restaurant → restaurant_id on menu_items.','Order ↔ menu_item is many-to-many → an order_items join table with quantity on it.','Driver assignment is one-to-many: a driver handles many orders → put driver_id on orders.'],
+    hints:['Menu items belong to one restaurant → restaurant_id on menu_items.','Order ↔ menu_item is many-to-many → an order_items join table with quantity on it.','Use one ratings row per order. A unique order_id prevents duplicate rating records and ties both restaurant and driver scores to a completed delivery.'],
   },
 ];

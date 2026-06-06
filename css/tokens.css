@@ -28,9 +28,9 @@
   /* ---------- Text ---------- */
   --fg:               #1A1A1A;   /* primary text */
   --fg-2:             #666666;   /* secondary text */
-  --fg-muted:         #999999;   /* muted / hint / disabled */
+  --fg-muted:         #666666;   /* muted text, readable on white and peach */
   --fg-inverse:       #FFFFFF;   /* on dark surfaces */
-  --fg-on-accent:     #FFFFFF;   /* on coral background */
+  --fg-on-accent:     #1A1A1A;   /* dark text keeps coral controls WCAG-readable */
 
   /* ---------- Semantic feedback ---------- */
   --success:          #22C55E;
@@ -159,7 +159,7 @@ a { color: inherit; text-decoration: none; }
   text-transform: uppercase;
   color: var(--fg-2);
 }
-.eyebrow--accent { color: var(--accent); }
+.eyebrow--accent { color: var(--accent-press); }
 
 .mono       { font-family: var(--font-mono); font-size: 14px; }
 .numeral    {
@@ -214,6 +214,7 @@ pre.code, pre .code {
 }
 .btn:active { transform: scale(0.98); }
 .btn:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+.btn:disabled { opacity:.48; cursor:not-allowed; box-shadow:none; transform:none; }
 
 .btn--primary {
   background: var(--accent);
@@ -221,7 +222,7 @@ pre.code, pre .code {
   border-color: var(--accent);
 }
 .btn--primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); box-shadow: var(--shadow-coral); }
-.btn--primary:active { background: var(--accent-press); border-color: var(--accent-press); }
+.btn--primary:active { background: var(--accent-press); border-color: var(--accent-press); color:#FFFFFF; }
 
 .btn--secondary {
   background: var(--bg);
