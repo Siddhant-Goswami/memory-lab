@@ -68,7 +68,10 @@ function gradeSchema(schema, challenge){
       if(attr.role==='pk') return; // handled above
       const required = attr.required !== false;
       const isFk = attr.role==='fk';
-      const W = isFk ? 8 : (attr.critical ? 7 : 3);
+      // structure dominates: fks & the lesson's critical attr are heavy,
+      // required descriptive attrs matter, optional ones are barely weighted
+      // so a structurally-correct model still passes without every nice-to-have column.
+      const W = isFk ? 8 : (attr.critical ? 7 : (required ? 3 : 1));
       max += W;
       const col = findCol(table, attr);
 
