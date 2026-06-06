@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Memory Lab — Learn Databases &amp; Domain Modeling by Doing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<!-- ============ SIDEBAR ============ -->
+<aside id="sidebar">
+  <div class="brand">
+    <div class="brand-mark">🧠</div>
+    <div>
+      <div class="brand-title">The Memory Lab</div>
+      <div class="brand-sub">Databases &amp; Domain Modeling</div>
+    </div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+    <div id="progressText" class="progress-text">0% complete</div>
+  </div>
+
+  <nav id="stageNav"></nav>
+
+  <div class="sidebar-foot">
+    <button id="resetBtn" class="ghost-btn" title="Wipe all your progress">↺ Reset progress</button>
+    <div class="track-note">Code track &amp; No-code track · combined</div>
+  </div>
+</aside>
+
+<!-- ============ MAIN ============ -->
+<main id="main">
+  <div id="stageContainer"></div>
+</main>
+
+<!-- ============ TOAST ============ -->
+<div id="toast" class="toast"></div>
+
+<script src="js/data.js"></script>
+<script src="js/grader.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

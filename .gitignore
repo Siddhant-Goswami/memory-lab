@@ -1,0 +1,9 @@
+# vercel
+.vercel
+
+# os
+.DS_Store
+
+# node (none used, but defensive)
+node_modules/
+npm-debug.log*
