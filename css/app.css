@@ -97,6 +97,33 @@ body{ background:var(--bg); color:var(--fg); overflow-x:hidden; }
 .trace .node{ background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-sm); padding:5px 9px; }
 .trace .arr{ color:var(--accent); }
 
+/* Socratic "pause & think" callout */
+.ask{ display:flex; gap:var(--space-3); align-items:flex-start; background:var(--accent-tint); border:1px solid var(--accent-tint-3); border-radius:var(--r-lg); padding:var(--space-4) var(--space-5); margin:0 0 var(--space-5); }
+.ask [data-lucide]{ color:var(--accent-press); flex:0 0 auto; margin-top:2px; }
+.ask .ask-k{ display:block; font-family:var(--font-mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent-press); margin-bottom:3px; }
+.ask .ask-c p{ margin:0; font-size:var(--fs-body); color:var(--fg); line-height:var(--lh-body); }
+
+/* Aarav chat mock — anchors the running example */
+.chatmock{ border:1px solid var(--border); border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--shadow-sm); background:var(--bg); }
+.cm-head{ display:flex; align-items:center; gap:7px; padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--border); font-family:var(--font-mono); font-size:var(--fs-caption); color:var(--fg-2); }
+.cm-dot{ width:7px; height:7px; border-radius:var(--r-pill); background:var(--success); }
+.cm-body{ padding:var(--space-4); display:flex; flex-direction:column; gap:var(--space-3); }
+.cm-plan{ background:var(--surface-1); border:1px solid var(--border); border-radius:var(--r-md); border-bottom-left-radius:4px; align-self:flex-start; max-width:88%; padding:var(--space-3) var(--space-4); }
+.cm-plan-h{ font-family:var(--font-display); font-weight:600; font-size:var(--fs-body-sm); color:var(--accent-press); margin-bottom:6px; }
+.cm-plan ol{ margin:0; padding-left:18px; }
+.cm-plan li{ font-size:var(--fs-body-sm); color:var(--fg-2); line-height:1.5; padding:2px 0; }
+
+/* one-to-many fan diagram */
+.fan{ display:flex; align-items:center; justify-content:center; gap:var(--space-4); flex-wrap:wrap; padding:var(--space-5) 0; }
+.fan-one{ background:var(--accent-tint); border-color:var(--accent)!important; color:var(--accent-press); }
+.fan-rays{ display:flex; flex-direction:column; gap:10px; }
+.fan-rays i{ display:block; width:40px; height:2px; background:var(--accent); border-radius:2px; }
+.fan-many{ display:flex; flex-direction:column; gap:8px; }
+.fan-many .rel-box{ font-size:var(--fs-body-sm); padding:7px 14px; }
+
+/* static ER reveal block */
+.er-static{ margin-top:var(--space-5); }
+
 /* ---------------- choice (one question at a time) ---------------- */
 .q-prompt{ font-family:var(--font-display); font-weight:600; font-size:var(--fs-h3); line-height:var(--lh-snug); letter-spacing:-0.01em; margin:0 0 var(--space-2); }
 .q-scn{ font-size:var(--fs-body-lg); color:var(--fg-2); line-height:var(--lh-body); margin:0 0 var(--space-6); }
@@ -241,6 +268,14 @@ table.sheet-tbl{ border-collapse:collapse; width:100%; font-family:var(--font-mo
 table.sheet-tbl th{ background:var(--surface-2); text-align:left; padding:7px 11px; border-bottom:1px solid var(--border); color:var(--fg-2); font-weight:600; white-space:nowrap; }
 table.sheet-tbl td{ padding:6px 11px; border-bottom:1px solid var(--border); white-space:nowrap; color:var(--fg); }
 table.sheet-tbl tr:last-child td{ border-bottom:none; }
+
+/* your blueprint — capstone */
+.myapp-q{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:var(--space-3); margin-bottom:var(--space-5); }
+.myapp-qcard{ background:var(--surface-1); border:1px solid var(--border); border-radius:var(--r-lg); padding:var(--space-4); }
+.myapp-qcard b{ display:block; font-family:var(--font-display); font-size:var(--fs-body); margin:var(--space-2) 0 4px; }
+.myapp-qcard p{ margin:0; font-size:var(--fs-body-sm); color:var(--fg-2); line-height:1.5; }
+.myapp-qn{ display:grid; place-items:center; width:26px; height:26px; border-radius:var(--r-pill); background:var(--accent); color:#fff; font-family:var(--font-display); font-weight:700; font-size:14px; }
+.myapp-cta{ display:flex; align-items:center; justify-content:space-between; gap:var(--space-4); flex-wrap:wrap; margin-top:var(--space-6); }
 
 /* completion */
 .cert{ text-align:center; padding:var(--space-7); background:var(--accent-tint); border-radius:var(--r-2xl); margin-top:var(--space-5); }

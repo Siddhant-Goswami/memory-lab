@@ -27,7 +27,7 @@ const FLAT=[]; const MOD_START=[];
 MODULES.forEach((m,mi)=>{ MOD_START[mi]=FLAT.length; m.steps.forEach((step,si)=>FLAT.push({gi:FLAT.length, mi, si, module:m, step})); });
 const TOTAL=FLAT.length;
 function moduleOf(gi){ return FLAT[gi].mi; }
-function moduleUnlocked(mi){ return MOD_START[mi] <= state.maxReached; }
+function moduleUnlocked(mi){ return MODULES[mi].open || MOD_START[mi] <= state.maxReached; }
 function moduleDone(mi){
   if(MODULES[mi].arena) return CHALLENGES.every(c=>state.solved[c.id]);
   const next = MOD_START[mi+1];
@@ -76,9 +76,10 @@ function render(){
   const footer=$('#stepFooter');
 
   if(step.t==='arena'){ footer.style.display='none'; renderArena(stage); icons(); return; }
+  if(step.t==='build'){ footer.style.display='none'; renderMyApp(stage); icons(); return; }
   footer.style.display='flex';
 
-  const node = ({intro:renderIntro,demo:renderDemo,concept:renderConcept,quiz:renderQuiz}[step.t]||renderConcept)(step);
+  const node = ({intro:renderIntro,demo:renderDemo,concept:renderConcept,quiz:renderQuiz,er:renderErStep}[step.t]||renderConcept)(step);
   stage.appendChild(node);
   renderFooter();
   icons();
@@ -93,13 +94,31 @@ function renderIntro(step){
   </div>`);
 }
 
+/* Socratic "pause and think" callout — posed BEFORE the reveal */
+function askHTML(step){
+  return step.ask?`<div class="ask">${ic('help-circle')}<div class="ask-c"><span class="ask-k">Pause &amp; think</span><p>${step.ask}</p></div></div>`:'';
+}
+
 function renderConcept(step){
   return el(`<div class="step">
     <div class="eyebrow-row">${ic('circle-dot')}<span class="eyebrow eyebrow--accent">${step.eyebrow||'Concept'}</span></div>
     <h1>${step.title}</h1>
     ${step.subtitle?`<p class="subtitle">${step.subtitle}</p>`:''}
+    ${askHTML(step)}
     ${step.body?`<p class="body">${step.body}</p>`:''}
     ${step.art||''}
+  </div>`);
+}
+
+/* static ER reveal — renders a predefined schema as an ER diagram */
+function renderErStep(step){
+  return el(`<div class="step">
+    <div class="eyebrow-row">${ic('git-fork')}<span class="eyebrow eyebrow--accent">${step.eyebrow||'ER diagram'}</span></div>
+    <h1>${step.title}</h1>
+    ${step.subtitle?`<p class="subtitle">${step.subtitle}</p>`:''}
+    ${askHTML(step)}
+    ${step.body?`<p class="body">${step.body}</p>`:''}
+    <div class="er-static">${renderER(step.schema||[])}</div>
   </div>`);
 }
 
@@ -142,19 +161,19 @@ function renderQuiz(step){
 function renderDemo(){
   const node=el(`<div class="step">
     <div class="eyebrow-row">${ic('zap')}<span class="eyebrow eyebrow--accent">Feel it first</span></div>
-    <h1>Your app has amnesia.</h1>
-    <p class="subtitle">Say something, then restart the server. Watch it forget.</p>
+    <h1>Aarav's app has amnesia.</h1>
+    <p class="subtitle">Be Aarav for a moment. Send a few messages, then restart the server and watch them vanish.</p>
     <div class="demo-chat">
       <div class="demo-top"><span class="demo-status" id="dstat"><span class="dot"></span> server running</span><span class="mono" id="dmem" style="font-size:12px;color:var(--fg-muted)">memory: 0 msgs</span></div>
-      <div class="demo-body" id="dbody"><div class="demo-empty">No messages yet — say something.</div></div>
+      <div class="demo-body" id="dbody"><div class="demo-empty">No messages yet, say something.</div></div>
       <div class="demo-in"><input class="input" id="din" placeholder="Type a message…" autocomplete="off"><button class="btn btn--primary btn--sm" id="dsend">Send</button></div>
     </div>
     <div class="row-wrap"><button class="btn btn--secondary btn--sm" id="drestart">${ic('rotate-ccw')} Restart server</button><span class="body-sm" id="dnote"></span></div>
-    <p class="body mt-4">Everything a running program holds lives in <b>memory</b> — and memory dies the instant the program stops. To remember, you need a place outside the program. But a place to put things is useless until you know <b>what shape</b> those things are. That shape is what we model next.</p>
+    <p class="body mt-4">Everything a running program holds lives in <b>memory</b>, and memory dies the instant the program stops. So Aarav needs a place <i>outside</i> the program. But a place to put things is useless until you know <b>what shape</b> those things are. That shape is what we model next.</p>
   </div>`);
   let msgs=[];
   const body=$('#dbody',node), input=$('#din',node);
-  const draw=()=>{ body.innerHTML = msgs.length? msgs.map(m=>`<div class="bub ${m.r}">${esc(m.t)}</div>`).join('') : '<div class="demo-empty">No messages yet — say something.</div>'; body.scrollTop=body.scrollHeight; $('#dmem',node).textContent='memory: '+msgs.length+' msgs'; };
+  const draw=()=>{ body.innerHTML = msgs.length? msgs.map(m=>`<div class="bub ${m.r}">${esc(m.t)}</div>`).join('') : '<div class="demo-empty">No messages yet, say something.</div>'; body.scrollTop=body.scrollHeight; $('#dmem',node).textContent='memory: '+msgs.length+' msgs'; };
   const send=()=>{ const v=input.value.trim(); if(!v)return; msgs.push({r:'u',t:v}); msgs.push({r:'b',t:['Got it.','Noted.','Tell me more.','Sure thing.'][v.length%4]}); input.value=''; draw(); };
   $('#dsend',node).onclick=send; input.onkeydown=e=>{ if(e.key==='Enter')send(); };
   $('#drestart',node).onclick=()=>{
@@ -176,8 +195,9 @@ function renderFooter(){
 
   const blocked = step.t==='quiz' && !state.answered[gi];
   cont.disabled = blocked;
-  const lastBeforeArena = gi===TOTAL-2;
-  cont.innerHTML = (lastBeforeArena?'Enter the Arena ':'Continue ')+ic('arrow-right');
+  const next = FLAT[gi+1];
+  const intoArena = next && next.step.t==='arena';
+  cont.innerHTML = (intoArena?'Enter the Arena ':'Continue ')+ic('arrow-right');
   cont.onclick=()=>{ if(!cont.disabled) goStep(gi+1); };
 
   // dots within current module
@@ -297,10 +317,17 @@ function renderArena(stage){
     <div class="arena-head">
       <div class="eyebrow-row">${ic('dumbbell')}<span class="eyebrow eyebrow--accent">The Arena · ${solvedCount}/${CHALLENGES.length} solved</span></div>
       <h1>Model it yourself.</h1>
-      <p class="subtitle">Pick a brief. Design the entities, attributes and relationships. Submit — the lab grades your schema live, like a senior engineer in review.</p>
+      <p class="subtitle">Pick a brief. Design the entities, attributes and relationships, then submit. The lab grades your schema live, like a senior engineer in review.</p>
     </div>
     <div id="tiers"></div>
     <div id="arenaCert"></div>
+    <div class="myapp-cta card card--feature">
+      <div>
+        <h3 class="h4" style="margin:0 0 4px">Ready to model your own app?</h3>
+        <p class="body-sm" style="margin:0">Take the same three questions to the idea you actually want to build.</p>
+      </div>
+      <button class="btn btn--primary" id="toMyApp">${ic('pen-tool')} Open Your blueprint</button>
+    </div>
   </div>`);
   const tcont=$('#tiers',wrap);
   tiers.forEach(([key,label,icon])=>{
@@ -318,6 +345,58 @@ function renderArena(stage){
   });
   if(solvedCount===CHALLENGES.length) $('#arenaCert',wrap).innerHTML=certHTML();
   stage.appendChild(wrap);
+  const myAppMi=MODULES.findIndex(m=>m.id==='myapp');
+  if(myAppMi>=0) $('#toMyApp',wrap).onclick=()=>goModule(myAppMi);
+}
+
+/* ============================================================
+   YOUR BLUEPRINT — the custom capstone (free-form, ungraded)
+   ============================================================ */
+function renderMyApp(stage){
+  state.myappDesc = state.myappDesc || '';
+  const wrap=el(`<div class="step step--wide">
+    <div class="arena-head">
+      <div class="eyebrow-row">${ic('pen-tool')}<span class="eyebrow eyebrow--accent">Your blueprint · the capstone</span></div>
+      <h1>Now model YOUR app.</h1>
+      <p class="subtitle">The same three questions you used for Aarav, pointed at the thing you actually want to build. Nothing here is graded. This is your real design.</p>
+    </div>
+
+    <div class="myapp-q">
+      <div class="myapp-qcard"><span class="myapp-qn">1</span><b>What are the things?</b><p>Read your idea out loud. Every noun you can count more than one of is an entity. Run the CRUD test on each.</p></div>
+      <div class="myapp-qcard"><span class="myapp-qn">2</span><b>What does each thing have?</b><p>List the facts you would need to recreate one. Those are its columns. If it only describes something else, it is an attribute, not a table.</p></div>
+      <div class="myapp-qcard"><span class="myapp-qn">3</span><b>How do they connect?</b><p>Phrase each link as "one X has many Y". Put the foreign key on the many side. Both sides "many"? Add a join table.</p></div>
+    </div>
+
+    <label class="label" for="myDesc" style="margin-top:var(--space-2)">In one line, what does your app do?</label>
+    <textarea class="textarea" id="myDesc" rows="2" placeholder="e.g. A user types a messy goal and gets back a structured weekly plan.">${esc(state.myappDesc)}</textarea>
+
+    <div class="work-toolbar" style="margin-top:var(--space-5)">
+      <button class="btn btn--secondary btn--sm" id="addTbl">${ic('plus')} Add table</button>
+      <button class="btn btn--ghost btn--sm" id="resetTbl">${ic('rotate-ccw')} Reset</button>
+      <span class="body-sm muted">Build a table per entity. Mark one PK, and an FK on every "many" side.</span>
+    </div>
+    <div id="mybuilder"></div>
+
+    <div class="row-wrap" style="margin-top:var(--space-5)">
+      <button class="btn btn--primary" id="erBtn">${ic('git-fork')} View ER diagram</button>
+      <button class="btn btn--secondary btn--sm" id="sheetBtn">${ic('table')} CSV sheets</button>
+      <button class="btn btn--ghost btn--sm" id="csvBtn">${ic('download')} Download CSVs</button>
+      <button class="btn btn--ghost btn--sm" id="toArena">${ic('arrow-left')} Back to the Arena</button>
+    </div>
+    <div id="myResult" style="margin-top:var(--space-4)"></div>
+  </div>`);
+  stage.appendChild(wrap);
+
+  const builder=makeBuilder('#mybuilder','myapp',{starter:['users']});
+  $('#myDesc',wrap).oninput=e=>{ state.myappDesc=e.target.value; persist(); };
+  $('#addTbl',wrap).onclick=()=>builder.addTable();
+  $('#resetTbl',wrap).onclick=()=>{ if(confirm('Reset your blueprint to a single starter table? This clears your tables.')){ builder.reset(); $('#myResult',wrap).innerHTML=''; } };
+  $('#erBtn',wrap).onclick=()=>{ $('#myResult',wrap).innerHTML=`<h3 class="h4" style="margin:var(--space-4) 0 var(--space-2)">Your ER diagram</h3>${renderER(builder.getSchema())}`; icons(); $('#myResult',wrap).scrollIntoView({behavior:'smooth',block:'start'}); };
+  $('#sheetBtn',wrap).onclick=()=>{ $('#myResult',wrap).innerHTML=`<h3 class="h4" style="margin:var(--space-4) 0 var(--space-2)">Your data as CSV sheets</h3>${renderSheets(builder.getSchema())}`; icons(); };
+  $('#csvBtn',wrap).onclick=()=>downloadCSV(builder.getSchema(),'my_app_schema.csv');
+  const arenaMi=MODULES.findIndex(m=>m.arena);
+  $('#toArena',wrap).onclick=()=>{ if(arenaMi>=0) goModule(arenaMi); };
+  icons();
 }
 
 function renderExercise(stage, ch){
@@ -371,8 +450,8 @@ function certHTML(){
   return `<div class="cert">
     <div class="big">100x</div>
     <h1>You modeled all ${CHALLENGES.length}.</h1>
-    <p class="body" style="max-width:560px;margin:0 auto">You can now map any product into entities, attributes and relationships — junction tables, associative attributes, historical records and all — and ship it to CSV, Supabase, or a company's private database. That's the core skill behind every large-scale system.</p>
-    <div class="card card--surface" style="text-align:left;margin-top:var(--space-5)"><p class="body" style="margin:0">${ic('arrow-right')} <b>Next:</b> there's a second way to remember — not by exact id, but by <b>meaning</b>. "Find the messages about billing", even if nobody wrote "billing". That's a vector database, and it's how RAG works. Same idea, different lookup.</p></div>
+    <p class="body" style="max-width:560px;margin:0 auto">You can now map any product into entities, attributes and relationships, with junction tables, associative attributes, and historical records, then ship it to CSV, Supabase, or a company's private database. That is the core skill behind every large-scale system.</p>
+    <div class="card card--surface" style="text-align:left;margin-top:var(--space-5)"><p class="body" style="margin:0">${ic('arrow-right')} <b>Next:</b> take it to your own idea in <b>Your blueprint</b>, then remember there is a second way to recall data: not by exact id, but by <b>meaning</b>. "Find the messages about billing", even if nobody wrote "billing". That is a vector database, and it is how RAG works.</p></div>
   </div>`;
 }
 

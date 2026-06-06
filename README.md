@@ -13,14 +13,18 @@ Progress and your schemas are saved automatically in the browser. Use **Reset pr
 
 ## How it's built pedagogically
 
-Minimal theory, maximum doing. The flow is a **linear lesson player** — one concept per screen (headline · subtitle · one short body), and quick checks that present **one question at a time** to keep cognitive load low. Then a practice gym.
+Socratic and Feynman, by design. Every concept opens with a **Pause and think** question so the student reasons out the *why* before the idea is ever named. One concept per screen (headline, subtitle, one short body), quick checks that present **one question at a time**, and visual diagrams throughout (chat mock, fan diagrams, trace chains, live ER).
+
+A single example is **woven through the whole flow**: Aarav, an early-career builder whose AI app types back a plan but forgets everything when the tab closes. We model his world question by question, and by module 6 his finished schema appears as an ER diagram, then scales up to the full 21-day workflow-diagnosis program with no new theory. Finally the student turns the same three questions on their own app.
 
 **Lessons**
-1. **Start here** — a 30-second "your app forgets" hook, then straight into modeling.
-2. **Entities** — the nouns + the CRUD test (is it its own thing?).
-3. **Attributes** — what describes an entity, and the entity-vs-attribute boundary.
-4. **Relationships** — one-to-one, one-to-many, many-to-many, the join/associative table, and *where in-between data (grade, quantity) belongs*.
-5. **Keys & ER** — primary keys, foreign keys (on the many side), and how the model maps to ER + CSV sheets.
+1. **Start here** — feel Aarav's app forget (live amnesia demo), then the three questions that fix it: things, what they have, how they connect.
+2. **Entities** — the nouns of Aarav's world + the CRUD test (is it its own thing?).
+3. **Attributes** — what describes an entity, and the entity-vs-attribute boundary (tone vs a reusable tone).
+4. **Relationships** — one-to-one, one-to-many, many-to-many, the join/associative table, and *where in-between data (grade, quantity, status) belongs*.
+5. **Keys & ER** — primary keys, foreign keys (on the many side), traced through Aarav's data.
+6. **Aarav's blueprint** — the woven example fully assembled as an ER diagram (the MVP), then scaled to the whole program.
+7. **Your blueprint** — a free, ungraded canvas where the student models their *own* app (entities, keys, relationships) and exports it to ER + CSV.
 
 **The Arena** — 10 graded modeling exercises across 3 tiers:
 
