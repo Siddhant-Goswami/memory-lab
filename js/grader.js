@@ -68,7 +68,7 @@ function gradeSchema(schema, challenge){
       if(attr.role==='pk') return; // handled above
       const required = attr.required !== false;
       const isFk = attr.role==='fk';
-      const W = isFk ? 8 : 3;
+      const W = isFk ? 8 : (attr.critical ? 7 : 3);
       max += W;
       const col = findCol(table, attr);
 
@@ -88,7 +88,12 @@ function gradeSchema(schema, challenge){
       } else {
         if(col){ score += W; }
         else if(required){
-          fb.push({type:'miss', icon:'✕', html:`<code>${table.name}</code> is missing the <b>${attr.name}</b> attribute.`});
+          if(attr.critical){
+            criticalFail = true;
+            fb.push({type:'miss', icon:'✕', html:`<code>${table.name}</code> is missing <b>${attr.name}</b> — and that's the crux of this exercise. ${attr.role!=='fk'?'It describes a connection, so it must live exactly here.':''} Add it to pass.`});
+          } else {
+            fb.push({type:'miss', icon:'✕', html:`<code>${table.name}</code> is missing the <b>${attr.name}</b> attribute.`});
+          }
         }
       }
     });

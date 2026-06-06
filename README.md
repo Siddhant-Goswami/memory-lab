@@ -1,48 +1,50 @@
-# 🧠 The Memory Lab
+# The Modeling Lab
 
-An interactive, browser-based exercise that teaches **databases & domain modeling** by *doing* — built from the Cohort 7 lecture *"Intro to Databases and Domain Modeling."*
+An interactive, browser-based course that teaches **domain modeling** by doing — the skill of mapping any product into **entities, attributes, and relationships**, then turning that into an ER diagram and a database schema (CSV-ready).
 
-No install, no server, no account. **Just double-click `index.html`.** Works for the code track and the no-code track alike.
+Built for 100xEngineers Cohort 7, in the 100x design language (white canvas, coral accent, Space Grotesk / DM Sans). No install, no server, no account — **just double-click `index.html`.** Works for the code track and the no-code track alike.
 
 ## How to run it
 
-- **Easiest:** double-click `index.html` → it opens in your browser.
-- Or, from a terminal: `open index.html` (macOS) / `xdg-open index.html` (Linux).
+- **Easiest:** double-click `index.html` → opens in your browser.
+- Or: `open index.html` (macOS) / `xdg-open index.html` (Linux).
 
-Your progress and your schemas are saved automatically in the browser (localStorage). Use **Reset progress** in the sidebar to start over.
+Progress and your schemas are saved automatically in the browser. Use **Reset progress** in the sidebar to start over.
 
-## What you'll do (8 progressive stages)
+## How it's built pedagogically
 
-| # | Stage | You learn by… |
-|---|-------|---------------|
-| 1 | **The Amnesia Problem** | Chatting with a system that forgets on restart, then watching a "just use a file" answer break at 10,000 users. |
-| 2 | **The Storage Ladder** | Placing real scenarios on the right rung: in-memory → file → database. |
-| 3 | **$10 or $100,000** | Answering a Fortune-500's "deploy it in our walls" — cloud vs on-prem. |
-| 4 | **Spot the Entity** | Sorting things into *entity* vs *attribute* with the CRUD test (drag or click). |
-| 5 | **Connect the Dots** | Naming each relationship: one-to-one, one-to-many, many-to-many. |
-| 6 | **Follow the Key** | Tracing primary keys & foreign keys through real rows. |
-| 7 | **The Schema Studio** | Building the chat app's tables yourself, graded live, exportable to CSV. |
-| 8 | **The Arena** | LeetCode-style challenges: design a full schema and submit it for grading. |
+Minimal theory, maximum doing. The flow is a **linear lesson player** — one concept per screen (headline · subtitle · one short body), and quick checks that present **one question at a time** to keep cognitive load low. Then a practice gym.
 
-## The Arena (the challenge)
+**Lessons**
+1. **Start here** — a 30-second "your app forgets" hook, then straight into modeling.
+2. **Entities** — the nouns + the CRUD test (is it its own thing?).
+3. **Attributes** — what describes an entity, and the entity-vs-attribute boundary.
+4. **Relationships** — one-to-one, one-to-many, many-to-many, the join/associative table, and *where in-between data (grade, quantity) belongs*.
+5. **Keys & ER** — primary keys, foreign keys (on the many side), and how the model maps to ER + CSV sheets.
 
-Three problems of rising difficulty — **Library** (easy), **Food Delivery** (medium), **Photo Network / Instagram** (hard). For each you:
+**The Arena** — 10 graded modeling exercises across 3 tiers:
 
-1. Read the brief.
-2. Build tables → add columns → mark **PK**/**FK** → point foreign keys at the right table.
-3. Hit **Submit**. A grader checks your entities, attributes, keys and relationships and gives specific, teachy feedback (it's forgiving about naming — plurals & synonyms are fine).
-4. **Preview as sheets** or **Download CSVs** — your domain model *is* a set of spreadsheets, which is exactly what maps onto a real DB schema.
+| Tier | Exercises (skill) |
+|------|-------------------|
+| Beginner | Library (1:N) · Pet Clinic (1:N) · Bakery (junction table) · Music Library (entity vs attribute) |
+| Intermediate | Online Learning (M:N) · University Grades (attribute on junction) · Car Rental (contract entity) · Hospital Assignments (historical records) |
+| Advanced | LinkedIn Automation (lifecycle + analytics) · Food Delivery (marketplace + assignment) |
 
-Solve all three to complete the lab.
+For each: read the brief → build tables (columns, PK/FK, references) → **Submit**. A forgiving-but-strict grader checks your entities, attributes, keys and relationships and gives specific feedback. It's lenient on naming (plurals + synonyms) but **won't pass** a model that misses the exercise's core lesson (e.g. no join table, or the grade on the wrong table). View it as an **ER diagram**, preview the **CSV sheets**, or **download the CSVs**.
 
 ## Files
 
 ```
-index.html      → the app shell
-css/styles.css  → styling
-js/data.js      → lecture content + challenge rubrics
-js/grader.js    → the schema-grading engine
-js/app.js       → stages, the schema builder, CSV export
+index.html       → app shell (sidebar + lesson player + arena)
+css/tokens.css   → 100xEngineers design tokens (colors, type, spacing) — drop-in brand sheet
+css/app.css      → app-specific components, built on the tokens
+js/data.js       → lesson content + the 10 exercise rubrics
+js/grader.js     → the schema-grading engine
+js/app.js        → linear player, schema builder, Arena, ER/CSV export
 ```
 
-To add your own challenge, copy an object in `CHALLENGES` (in `js/data.js`) and describe its `rubric`. No other changes needed.
+To add an exercise, copy an object in `CHALLENGES` (in `js/data.js`) and describe its `rubric`. Mark an attribute `critical: true` to make missing it block a pass (use it for the exercise's teaching point). No other changes needed.
+
+## Design
+
+Implements the **100xEngineers design system** (`css/tokens.css` is the brand's drop-in token sheet): white canvas, coral `#F96846` as the single accent, generous whitespace, borders over heavy shadows, Space Grotesk + DM Sans + JetBrains Mono, and subtle 150–200ms motion. Icons are [Lucide](https://lucide.dev) (outline), loaded via CDN.
